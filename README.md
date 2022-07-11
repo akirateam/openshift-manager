@@ -1,2 +1,2 @@
 # openshift-manager
-Ansible Playbooks and Terraform to Manage OpenShift 
+Ansible Playbooks to Manage OpenShift 
