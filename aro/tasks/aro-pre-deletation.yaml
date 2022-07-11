@@ -1,0 +1,19 @@
+---
+- name: Get SubscriptionID for Microsoft Azure Redhat OpenShift (ARO)
+  command:
+    cmd: az account show --query id -o tsv
+  register: aro_subscriptionid_info
+
+- name: Get TenantID for Microsoft Azure Redhat OpenShift (ARO)
+  command:
+    cmd: az account show --query tenantId -o tsv
+  register: aro_tenantid_info
+  
+- name: Set SubscriptionID for Microsoft Azure Redhat OpenShift (ARO)
+  command:
+    cmd: az account set --subscription {{ aro_subscriptionid_info.stdout }}
+
+- name: Get AD ApplicationID for Microsoft Azure Redhat OpenShift (ARO)
+  command:
+    cmd: az ad sp list --display-name "{{ aro_rg }}-{{ aro_cluster_name }}-sp" --query [0].appId -o tsv
+  register: aro_get_serviceprincipal_appid

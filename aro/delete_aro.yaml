@@ -1,0 +1,11 @@
+- hosts: localhost
+  connection: local
+  collections:
+    - azure.azcollection
+  
+  vars_files:
+    - "defaults/config.yaml"
+
+  tasks:
+    - import_tasks: "tasks/aro-pre-deletation.yaml"
+    - import_tasks: "tasks/aro-destroy.yaml"

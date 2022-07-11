@@ -1,0 +1,37 @@
+---
+- name: Get SubscriptionID for Microsoft Azure Redhat OpenShift (ARO)
+  command:
+    cmd: az account show --query id -o tsv
+  register: aro_subscriptionid_info
+
+- name: Get TenantID for Microsoft Azure Redhat OpenShift (ARO)
+  command:
+    cmd: az account show --query tenantId -o tsv
+  register: aro_tenantid_info
+
+- name: Set Subscription ID for Microsoft Azure Redhat OpenShift (ARO) 
+  command:
+    cmd: az account set --subscription {{ aro_subscriptionid_info.stdout }}
+
+- name: Get ObjectID from Azure Red Hat OpenShift RP for Microsoft Azure Redhat OpenShift (ARO)
+  command:
+    cmd: az ad sp list --display-name "Azure Red Hat OpenShift RP" --query [0].id -o tsv
+  register: aro_azure_openshift_rp_info
+
+- name: Register Providers Microsoft.Authorization for Microsoft Azure Redhat OpenShift (ARO)
+  command: "az provider register -n Microsoft.Authorization --wait"
+
+- name: Register Providers Microsoft.RedHatOpenShift for Microsoft Azure Redhat OpenShift (ARO)
+  command: "az provider register -n Microsoft.RedHatOpenShift --wait"
+
+- name: Register Providers Microsoft.Compute for Microsoft Azure Redhat OpenShift (ARO)
+  command: "az provider register -n Microsoft.Compute --wait"
+
+- name: Register Providers Microsoft.Storage for Microsoft Azure Redhat OpenShift (ARO)
+  command: "az provider register -n Microsoft.Storage --wait"
+
+- name: Register Providers Microsoft.Network for Microsoft Azure Redhat OpenShift (ARO)
+  command: "az provider register -n Microsoft.Network --wait"
+
+- name: Register Providers Microsoft.Resources for Microsoft Azure Redhat OpenShift (ARO)
+  command: "az provider register -n Microsoft.Resources --wait"

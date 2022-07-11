@@ -1,0 +1,26 @@
+---
+- name: Destroy Microsoft Azure Redhat OpenShift (ARO)
+  azure_rm_openshiftmanagedcluster:
+    resource_group: "{{ aro_rg }}"
+    name: "{{ aro_cluster_name }}"
+    location: "{{ aro_location }}"
+    state: absent
+
+- name: Delete Resource Group for Microsoft Azure Redhat OpenShift (ARO)
+  azure_rm_resourcegroup:
+    name: "{{ aro_rg }}"
+    force_delete_nonempty: yes
+    state: absent
+
+- name: Delete AD Service Principal for Microsoft Azure Redhat OpenShift (ARO)
+  azure_rm_adserviceprincipal:
+    app_id: "aro_get_serviceprincipal_appid"
+    state: absent
+    tenant: "aro_tenantid_info"
+
+- name: Microsoft Azure Redhat OpenShift (ARO)
+  ansible.builtin.debug:
+    msg:
+      - "Your Microsoft Azure Redhat OpenShift (ARO) was deleted"
+      - "{{ aro_cluster_name }}: Deleted"
+      - "{{ aro_rg }: Deleted"

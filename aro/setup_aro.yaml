@@ -1,0 +1,12 @@
+- hosts: localhost
+  connection: local
+  collections:
+    - azure.azcollection
+  
+  vars_files:
+    - "defaults/config.yaml"
+
+  tasks:
+    - import_tasks: "tasks/aro-pre-installation.yaml"
+    - import_tasks: "tasks/aro-deploy.yaml"
+    - import_tasks: "tasks/aro-pos-installation.yaml"

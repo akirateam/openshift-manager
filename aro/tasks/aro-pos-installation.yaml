@@ -1,0 +1,25 @@
+---
+- name: Get Kubeadmin credentials for Microsoft Azure Redhat OpenShift (ARO)
+  command: 
+    cmd: az aro list-credentials --name "{{ aro_cluster_name }}" --resource-group "{{ aro_rg }}" --query "kubeadminUsername" -o tsv
+  register: aro_credentials_user
+
+- name: Get Kubeadmin credentials for Microsoft Azure Redhat OpenShift (ARO)
+  command:
+    cmd: az aro list-credentials --name "{{ aro_cluster_name }}" --resource-group "{{ aro_rg }}" --query "kubeadminPassword" -o tsv
+  register: aro_credentials_password
+
+
+- name: Get the OpenShift console URL for Microsoft Azure Redhat OpenShift (ARO)
+  command: 
+    cmd: az aro show --name "{{ aro_cluster_name }}" --resource-group "{{ aro_rg }}" --query "consoleProfile.url" -o tsv
+  register: aro_console_url
+  
+- name: Microsoft Azure Redhat OpenShift (ARO)
+  ansible.builtin.debug:
+    msg:
+      - "Congrats!!! Your first Microsoft Azure Red Hat OpenShift was provisioned!"
+      - "Your Credentials for OpenShift Console: "
+      - "URL: {{ aro_console_url.stdout }}"
+      - "Username: {{ aro_credentials_user.stdout }}"
+      - "Password: {{ aro_credentials_password.stdout }}"

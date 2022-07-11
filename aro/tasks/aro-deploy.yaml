@@ -1,0 +1,123 @@
+---
+- name: Create Application for Microsoft Azure Redhat OpenShift (ARO)
+  azure_rm_adapplication:
+    tenant: "{{ aro_tenantid_info.stdout }}"
+    display_name: "{{ aro_rg }}-{{ aro_cluster_name }}-sp"
+  register: aro_adapplication
+
+- name: Create AD Password for Microsoft Azure Redhat OpenShift (ARO)
+  azure_rm_adpassword:
+    app_id: "{{ aro_adapplication.app_id }}"
+    state: present
+    value: "{{ aro_secret }}"
+    tenant: "{{ aro_tenantid_info.stdout }}"
+  register: aro_adpassword
+
+- name: Create Service Principal for Microsoft Azure Redhat OpenShift (ARO)
+  azure_rm_adserviceprincipal:
+    app_id: "{{ aro_adapplication.app_id }}" 
+    tenant: "{{ aro_tenantid_info.stdout }}"
+  register: aro_adserviceprincipal
+
+- name: Apply Permissions on AD Graph API for Microsoft Azure Redhat OpenShift (ARO)
+  azure_rm_adapplication:
+    tenant: "{{ aro_tenantid_info.stdout }}"
+    app_id: "{{ aro_adapplication.app_id }}"
+    required_resource_accesses:
+      - resource_app_id: "00000002-0000-0000-c000-000000000000"
+        resource_access:
+          - { id: "824c81eb-e3f8-4ee6-8f6d-de7f50d565b7", type: "Role" }
+
+- name: Apply Permissions on Microsoft Graph API for Microsoft Azure Redhat OpenShift (ARO)
+  azure_rm_adapplication:
+    tenant: "{{ aro_tenantid_info.stdout }}"
+    app_id: "{{ aro_adapplication.app_id }}"
+    required_resource_accesses:
+      - resource_app_id: "00000003-0000-0000-c000-000000000000"
+        resource_access:
+          - { id: "e1fe6dd8-ba31-4d61-89e7-88639da4683d", type: "Scope" }
+
+- name: Create Resource Group for Microsoft Azure Redhat OpenShift (ARO)
+  azure_rm_resourcegroup:
+    name: "{{ aro_rg }}"
+    location: "{{ aro_location }}"
+    state: present
+
+- name: Create a role assignment Contributor for Microsoft Azure Redhat OpenShift (ARO)
+  azure_rm_roleassignment:
+    scope: "/subscriptions/{{ aro_subscriptionid_info.stdout }}/resourceGroups/{{ aro_rg }}"
+    assignee_object_id: "{{ aro_adserviceprincipal.object_id }}"
+    role_definition_id: "/subscriptions/{{ aro_subscriptionid_info.stdout }}/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c"
+
+- name: Create a role assignment User Access Administrator for Microsoft Azure Redhat OpenShift (ARO)
+  azure_rm_roleassignment:
+    scope: "/subscriptions/{{ aro_subscriptionid_info.stdout }}/resourceGroups/{{ aro_rg }}"
+    assignee_object_id: "{{ aro_adserviceprincipal.object_id }}"
+    role_definition_id: "/subscriptions/{{ aro_subscriptionid_info.stdout }}/providers/Microsoft.Authorization/roleDefinitions/18d7d88d-d35e-4fb5-a5c3-7773c20a72d9"
+
+- name: Create Virtual Network for Microsoft Azure Redhat OpenShift (ARO)
+  azure_rm_virtualnetwork:
+    resource_group: "{{ aro_rg }}"
+    name: "aro-vnet"
+    address_prefixes:
+    - "10.0.0.0/22"
+
+- name: Create a role assignment Contributor for Microsoft Azure Redhat OpenShift (ARO)
+  azure_rm_roleassignment:
+    scope: "/subscriptions/{{ aro_subscriptionid_info.stdout }}/resourceGroups/{{ aro_rg }}"
+    assignee_object_id: "{{ aro_azure_openshift_rp_info.stdout }}"
+    role_definition_id: "/subscriptions/{{ aro_subscriptionid_info.stdout }}/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c"
+
+- name: Create a role assignment Contributor for Microsoft Azure Redhat OpenShift (ARO)
+  azure_rm_roleassignment:
+    scope: "/subscriptions/{{ aro_subscriptionid_info.stdout }}/resourceGroups/{{ aro_rg }}"
+    assignee_object_id: "{{ aro_adserviceprincipal.object_id }}"
+    role_definition_id: "/subscriptions/{{ aro_subscriptionid_info.stdout }}/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c"
+
+- name: Add Master Subnet for Microsoft Azure Redhat OpenShift (ARO)
+  azure_rm_subnet:
+    resource_group: "{{ aro_rg }}"
+    name: "master"
+    virtual_network_name: "aro-vnet"
+    address_prefix: "10.0.0.0/23"
+    private_link_service_network_policies: Disabled
+    service_endpoints:
+      - service: Microsoft.ContainerRegistry
+
+- name: Add Worker Subnet for Microsoft Azure Redhat OpenShift (ARO)
+  azure_rm_subnet:
+    resource_group: "{{ aro_rg }}"
+    name: "worker"
+    address_prefix: "10.0.2.0/23"
+    virtual_network_name: "aro-vnet"
+    service_endpoints:
+      - service: Microsoft.ContainerRegistry
+
+- name: Deploy your fist Microsoft Azure Redhat OpenShift (ARO)
+  azure_rm_openshiftmanagedcluster:
+    resource_group: "{{ aro_rg }}"
+    name: "{{ aro_cluster_name }}"
+    location: "{{ aro_location }}"
+    cluster_profile:
+      cluster_resource_group_id: "/subscriptions/{{ aro_subscriptionid_info.stdout }}/resourceGroups/{{ aro_cluster_name }}-group"
+      domain: "{{ aro_cluster_name }}"
+    service_principal_profile:
+      client_id: "{{ aro_adapplication.app_id }}"
+      client_secret: "{{ aro_secret }}"
+    network_profile:
+      pod_cidr: "10.128.0.0/14"
+      service_cidr: "172.30.0.0/16"
+    worker_profiles:
+      - vm_size : "Standard_D4s_v3"
+        subnet_id : "/subscriptions/{{ aro_subscriptionid_info.stdout }}/resourceGroups/{{ aro_rg }}/providers/Microsoft.Network/virtualNetworks/aro-vnet/subnets/worker"
+        disk_size : 128
+        count : 3
+    master_profile:
+      vm_size : "Standard_D8s_v3"
+      subnet_id: "/subscriptions/{{ aro_subscriptionid_info.stdout }}/resourceGroups/{{ aro_rg }}/providers/Microsoft.Network/virtualNetworks/aro-vnet/subnets/master"
+
+- name: Please wait 60 minutes for Microsoft Azure Redhat OpenShift (ARO) to finish provisioning
+  local_action: 
+    module: wait_for
+    timeout: 3600
+    msg: "Failed: Timeout exceeded for Microsoft Azure Redhat OpenShift (ARO) provisiong"
